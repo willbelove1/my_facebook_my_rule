@@ -1,0 +1,34 @@
+
+/**
+ * Module: FilterRegistry
+ * Mục đích: Cấu trúc dễ mở rộng để đăng ký và áp dụng các bộ lọc bài viết
+ */
+FBCMF.registerModule('FilterRegistry', async (ctx) => {
+  const filters = new Map();
+
+  const register = (name, filterFn) => {
+    if (typeof filterFn === 'function') {
+      filters.set(name, filterFn);
+    } else {
+      console.warn(\`[FilterRegistry] ❌ Bộ lọc "\${name}" không hợp lệ.\`);
+    }
+  };
+
+  const apply = (post, settings) => {
+    for (const [name, fn] of filters.entries()) {
+      if (settings[name]) {
+        const reason = fn(post, settings);
+        if (reason) return reason;
+      }
+    }
+    return '';
+  };
+
+  ctx.FilterRegistry = {
+    register,
+    apply,
+    list: () => Array.from(filters.keys())
+  };
+
+  console.log('[FilterRegistry] ✅ Đã sẵn sàng.');
+});
