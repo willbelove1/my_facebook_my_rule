@@ -51,11 +51,12 @@
     };
     const initUI = () => {
       if (!document.head || !document.body) {
-        console.error('[UIManager] document.head hoặc document.body không khả dụng');
+        console.warn('[UIManager] DOM chưa sẵn sàng, thử lại sau 1s');
         setTimeout(initUI, 1000);
         return;
       }
       try {
+        // Thêm style
         const style = document.createElement('style');
         style.textContent = cleanContent(`
           #fbcmf-clean-btn {
@@ -94,11 +95,15 @@
         `);
         document.head.appendChild(style);
         console.log('[UIManager] Đã thêm style vào head');
+
+        // Thêm nút Clean
         const btn = document.createElement('button');
         btn.id = 'fbcmf-clean-btn';
         btn.innerText = i18n.cleanButton;
         document.body.appendChild(btn);
         console.log('[UIManager] Đã thêm nút clean-btn');
+
+        // Thêm popup
         const popup = document.createElement('div');
         popup.id = 'fbcmf-settings-popup';
         popup.innerHTML = cleanContent(`
@@ -127,6 +132,8 @@
         `);
         document.body.appendChild(popup);
         console.log('[UIManager] Đã thêm popup');
+
+        // Tải cài đặt vào giao diện
         try {
           document.getElementById('fbcmf-blockSponsored').checked = !!settings.blockSponsored;
           document.getElementById('fbcmf-blockSuggested').checked = !!settings.blockSuggested;
@@ -141,11 +148,19 @@
         } catch (e) {
           console.error('[UIManager] Lỗi khi tải cài đặt vào giao diện:', e);
         }
+
+        // Gắn sự kiện
         try {
-          btn.addEventListener('click', () => {
+          const cleanBtn = document.getElementById('fbcmf-clean-btn');
+          if (!cleanBtn) {
+            console.error('[UIManager] Không tìm thấy fbcmf-clean-btn');
+            return;
+          }
+          cleanBtn.addEventListener('click', () => {
             console.log('[UIManager] Nút clean-btn được nhấn');
             popup.style.display = popup.style.display === 'none' ? 'block' : 'none';
           });
+
           const saveBtn = document.getElementById('fbcmf-save-btn');
           if (!saveBtn) {
             console.error('[UIManager] Không tìm thấy fbcmf-save-btn');
@@ -160,20 +175,29 @@
                 blockReels: document.getElementById('fbcmf-blockReels').checked,
                 blockGIFs: document.getElementById('fbcmf-blockGIFs').checked,
                 blockKeywords: document.getElementById('fbcmf-blockKeywords').checked,
-                blockedKeywords: document.getElementById('fbcmf-keywordInput').value.split(',').map(k => k.trim()).filter(Boolean),
+                blockedKeywords: document.getElementById('fbcmf-keywordInput').value
+                  .split(',')
+                  .map(k => k.trim())
+                  .filter(Boolean),
                 expandNewsFeed: document.getElementById('fbcmf-expandNewsFeed').checked,
                 language: document.getElementById('fbcmf-language').value,
                 verbosity: document.getElementById('fbcmf-verbosity').value
               };
-              saveSettings(newSettings);
-              console.log('[UIManager] Đã lưu cài đặt:', newSettings);
-              alert('✅ Cài đặt đã được lưu. Vui lòng tải lại trang để áp dụng.');
-              location.reload();
+              const saved = saveSettings(newSettings);
+              if (saved) {
+                console.log('[UIManager] Đã lưu cài đặt:', newSettings);
+                alert('✅ Cài đặt đã được lưu. Vui lòng tải lại trang để áp dụng.');
+                location.reload();
+              } else {
+                console.error('[UIManager] Lưu cài đặt thất bại');
+                alert('❌ Lỗi khi lưu cài đặt');
+              }
             } catch (e) {
               console.error('[UIManager] Lỗi khi lưu cài đặt:', e);
               alert('❌ Lỗi khi lưu cài đặt: ' + e.message);
             }
           });
+
           const cleanNowBtn = document.getElementById('fbcmf-clean-now-btn');
           if (!cleanNowBtn) {
             console.error('[UIManager] Không tìm thấy fbcmf-clean-now-btn');
@@ -192,15 +216,12 @@
         } catch (e) {
           console.error('[UIManager] Lỗi khi thêm sự kiện:', e);
         }
-      } catch (e) {
-        console.error('[UIManager] Lỗi khi khởi tạo giao diện:', e);
+      };
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initUI);
+      } else {
+        setTimeout(initUI, 100); // Đợi ngắn để đảm bảo DOM sẵn sàng
       }
-    };
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initUI);
-    } else {
-      initUI();
-    }
-    console.log('[UIManager] ✅ Đã khởi tạo UIManager.');
-  });
-})();
+      console.log('[UIManager] ✅ Đã khởi tạo UIManager.');
+    });
+  })();
