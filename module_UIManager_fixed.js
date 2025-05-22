@@ -8,7 +8,6 @@
     console.error('[UIManager] FBCMF không được định nghĩa');
     return;
   }
-
   FBCMF.registerModule('UIManager', async ({ settings, saveSettings }) => {
     const lang = settings.language || 'vi';
     const i18n = {
@@ -43,21 +42,16 @@
         verbosity: 'Chi tiết ghi log',
       }
     }[lang];
-
-    // Làm sạch nội dung để loại bỏ ký tự không hợp lệ
     const cleanContent = (content) => {
-      return content.replace(/[\u0000-\u001F\u007F-\u009F]/g, '').trim();
+      return content.replace(/[-\u001F\u007F-\u009F]/g, '').trim();
     };
-
     const initUI = () => {
       if (!document.head || !document.body) {
         console.error('[UIManager] document.head hoặc document.body không khả dụng');
-        setTimeout(initUI, 1000); // Thử lại sau 1 giây
+        setTimeout(initUI, 1000);
         return;
       }
-
       try {
-        // Inject Styles
         const style = document.createElement('style');
         style.textContent = cleanContent(`
           #fbcmf-clean-btn {
@@ -96,14 +90,11 @@
         `);
         document.head.appendChild(style);
         console.log('[UIManager] Đã thêm style vào head');
-
-        // Inject UI
         const btn = document.createElement('button');
         btn.id = 'fbcmf-clean-btn';
         btn.innerText = i18n.cleanButton;
         document.body.appendChild(btn);
         console.log('[UIManager] Đã thêm nút clean-btn');
-
         const popup = document.createElement('div');
         popup.id = 'fbcmf-settings-popup';
         popup.innerHTML = cleanContent(`
@@ -132,8 +123,6 @@
         `);
         document.body.appendChild(popup);
         console.log('[UIManager] Đã thêm popup');
-
-        // Load settings
         try {
           document.getElementById('fbcmf-blockSponsored').checked = !!settings.blockSponsored;
           document.getElementById('fbcmf-blockSuggested').checked = !!settings.blockSuggested;
@@ -147,13 +136,10 @@
         } catch (e) {
           console.error('[UIManager] Lỗi khi tải cài đặt vào giao diện:', e);
         }
-
-        // Events
         try {
           btn.addEventListener('click', () => {
             popup.style.display = popup.style.display === 'none' ? 'block' : 'none';
           });
-
           document.getElementById('fbcmf-save-btn').addEventListener('click', () => {
             try {
               const newSettings = {
@@ -176,7 +162,6 @@
               alert('❌ Lỗi khi lưu cài đặt: ' + e.message);
             }
           });
-
           document.getElementById('fbcmf-clean-now-btn').addEventListener('click', () => {
             location.reload();
           });
@@ -187,14 +172,11 @@
         console.error('[UIManager] Lỗi khi khởi tạo giao diện:', e);
       }
     };
-
-    // Chờ DOM sẵn sàng
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initUI);
     } else {
       initUI();
     }
-
     console.log('[UIManager] ✅ Đã khởi tạo UIManager.');
   });
 })();
