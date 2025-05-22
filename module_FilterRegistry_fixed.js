@@ -9,6 +9,7 @@
     return;
   }
   window.FBCMF.registerModule('FilterRegistry', async (ctx) => {
+    console.log('[FilterRegistry] Bắt đầu khởi tạo...');
     const filters = new Map();
     const register = (name, filterFn) => {
       if (typeof filterFn === 'function') {
