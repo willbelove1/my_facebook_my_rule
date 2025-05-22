@@ -8,11 +8,12 @@
     console.error('[FilterRegistry] FBCMF không được định nghĩa');
     return;
   }
-  FBCMF.registerModule('FilterRegistry', async (ctx) => {
+  window.FBCMF.registerModule('FilterRegistry', async (ctx) => {
     const filters = new Map();
     const register = (name, filterFn) => {
       if (typeof filterFn === 'function') {
         filters.set(name, filterFn);
+        console.log(`[FilterRegistry] Đã đăng ký bộ lọc: ${name}`);
       } else {
         console.warn(`[FilterRegistry] ❌ Bộ lọc "${name}" không hợp lệ.`);
       }
