@@ -9,6 +9,7 @@
     return;
   }
   window.FBCMF.registerModule('UIManager', async ({ settings, saveSettings }) => {
+    console.log('[UIManager] Khởi tạo với settings:', settings);
     if (!saveSettings) {
       console.error('[UIManager] saveSettings không được định nghĩa');
       return;
@@ -164,7 +165,7 @@
         }
 
         // Gắn sự kiện với retry
-        const attachEvents = async (attempt = 1, maxAttempts = 5) => {
+        const attachEvents = async (attempt = 1, maxAttempts = 10) => {
           try {
             const cleanBtn = document.getElementById('fbcmf-clean-btn');
             const saveBtn = document.getElementById('fbcmf-save-btn');
@@ -180,7 +181,7 @@
                 return;
               }
               console.warn(`[UIManager] Một số phần tử chưa sẵn sàng, thử lại lần ${attempt + 1}`);
-              setTimeout(() => attachEvents(attempt + 1, maxAttempts), 1000);
+              setTimeout(() => attachEvents(attempt + 1, maxAttempts), 500);
               return;
             }
 
@@ -193,19 +194,20 @@
               console.log('[UIManager] Nút save-btn được nhấn');
               try {
                 const newSettings = {
-                  blockSponsored: document.getElementById('fbcmf-blockSponsored').checked,
-                  blockSuggested: document.getElementById('fbcmf-blockSuggested').checked,
-                  blockReels: document.getElementById('fbcmf-blockReels').checked,
-                  blockGIFs: document.getElementById('fbcmf-blockGIFs').checked,
-                  blockKeywords: document.getElementById('fbcmf-blockKeywords').checked,
-                  blockedKeywords: document.getElementById('fbcmf-keywordInput').value
-                    .split(',')
+                  blockSponsored: document.getElementById('fbcmf-blockSponsored')?.checked ?? false,
+                  blockSuggested: document.getElementById('fbcmf-blockSuggested')?.checked ?? false,
+                  blockReels: document.getElementById('fbcmf-blockReels')?.checked ?? false,
+                  blockGIFs: document.getElementById('fbcmf-blockGIFs')?.checked ?? false,
+                  blockKeywords: document.getElementById('fbcmf-blockKeywords')?.checked ?? false,
+                  blockedKeywords: document.getElementById('fbcmf-keywordInput')?.value
+                    ?.split(',')
                     .map(k => k.trim())
-                    .filter(Boolean),
-                  expandNewsFeed: document.getElementById('fbcmf-expandNewsFeed').checked,
-                  language: document.getElementById('fbcmf-language').value,
-                  verbosity: document.getElementById('fbcmf-verbosity').value
+                    .filter(Boolean) ?? [],
+                  expandNewsFeed: document.getElementById('fbcmf-expandNewsFeed')?.checked ?? false,
+                  language: document.getElementById('fbcmf-language')?.value ?? 'vi',
+                  verbosity: document.getElementById('fbcmf-verbosity')?.value ?? 'normal'
                 };
+                console.log('[UIManager] Cài đặt mới:', newSettings);
                 const saved = saveSettings(newSettings);
                 if (saved) {
                   console.log('[UIManager] Đã lưu cài đặt:', newSettings);
@@ -247,7 +249,7 @@
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initUI);
     } else {
-      setTimeout(initUI, 100);
+      setTimeout(initUI, 200);
     }
   });
 })();
