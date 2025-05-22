@@ -1,6 +1,6 @@
 /**
  * FBCMF - Facebook Cleaner Modular Framework (Core)
- * Kiến trúc mở rộng (Extensible Architecture) cho các module gắn thêm
+ * Kiến trúc mở rộng cho các module gắn thêm
  */
 (function () {
   'use strict';
