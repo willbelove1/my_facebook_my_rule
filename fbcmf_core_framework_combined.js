@@ -105,7 +105,7 @@
         saveSettings: this.saveSettings.bind(this),
         loadSettings: this.loadSettings.bind(this)
       };
-
+      console.log('[FBCMF] Đã khởi tạo context:', Object.keys(this.context));
       // 3. Chạy từng mô-đun đã đăng ký theo thứ tự
       // Ưu tiên các module core trước
       const coreModules = ['FilterRegistry', 'SettingsManager', 'UIManager'];
