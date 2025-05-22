@@ -9,6 +9,10 @@
     return;
   }
   FBCMF.registerModule('UIManager', async ({ settings, saveSettings }) => {
+    if (!saveSettings) {
+      console.error('[UIManager] saveSettings không được định nghĩa');
+      return;
+    }
     const lang = settings.language || 'vi';
     const i18n = {
       en: {
@@ -133,14 +137,22 @@
           document.getElementById('fbcmf-expandNewsFeed').checked = !!settings.expandNewsFeed;
           document.getElementById('fbcmf-language').value = settings.language || 'vi';
           document.getElementById('fbcmf-verbosity').value = settings.verbosity || 'normal';
+          console.log('[UIManager] Đã tải cài đặt vào giao diện');
         } catch (e) {
           console.error('[UIManager] Lỗi khi tải cài đặt vào giao diện:', e);
         }
         try {
           btn.addEventListener('click', () => {
+            console.log('[UIManager] Nút clean-btn được nhấn');
             popup.style.display = popup.style.display === 'none' ? 'block' : 'none';
           });
-          document.getElementById('fbcmf-save-btn').addEventListener('click', () => {
+          const saveBtn = document.getElementById('fbcmf-save-btn');
+          if (!saveBtn) {
+            console.error('[UIManager] Không tìm thấy fbcmf-save-btn');
+            return;
+          }
+          saveBtn.addEventListener('click', () => {
+            console.log('[UIManager] Nút save-btn được nhấn');
             try {
               const newSettings = {
                 blockSponsored: document.getElementById('fbcmf-blockSponsored').checked,
@@ -155,6 +167,7 @@
               };
               saveSettings(newSettings);
               console.log('[UIManager] Đã lưu cài đặt:', newSettings);
+              localStorage.setItem('fbcmf-settings', JSON.stringify(newSettings));
               alert('✅ Cài đặt đã được lưu. Vui lòng tải lại trang để áp dụng.');
               location.reload();
             } catch (e) {
@@ -162,8 +175,20 @@
               alert('❌ Lỗi khi lưu cài đặt: ' + e.message);
             }
           });
-          document.getElementById('fbcmf-clean-now-btn').addEventListener('click', () => {
-            location.reload();
+          const cleanNowBtn = document.getElementById('fbcmf-clean-now-btn');
+          if (!cleanNowBtn) {
+            console.error('[UIManager] Không tìm thấy fbcmf-clean-now-btn');
+            return;
+          }
+          cleanNowBtn.addEventListener('click', () => {
+            console.log('[UIManager] Nút clean-now-btn được nhấn');
+            try {
+              console.log('[UIManager] Làm mới trang để áp dụng bộ lọc');
+              location.reload();
+            } catch (e) {
+              console.error('[UIManager] Lỗi khi làm mới trang:', e);
+              alert('❌ Lỗi khi làm mới trang: ' + e.message);
+            }
           });
         } catch (e) {
           console.error('[UIManager] Lỗi khi thêm sự kiện:', e);
