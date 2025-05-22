@@ -1,7 +1,7 @@
 /**
  * Module: UIManager
  * Mục đích: Giao diện popup cài đặt bằng tiếng Việt hoặc tiếng Anh
- * Phiên bản: 1.1.1 (Thêm light mode và bật/tắt tất cả, fix lỗi DOM)
+ * Phiên bản: 1.1.2 (Fix lỗi DOM không tìm thấy phần tử, bỏ retry)
  */
 (function() {
   'use strict';
@@ -16,9 +16,8 @@
       return;
     }
     const lang = settings.language || 'vi';
-    const theme = settings.theme || 'dark'; // Thêm theme mặc định
+    const theme = settings.theme || 'light'; // Đặt light làm mặc định
     
-    // Bổ sung các chuỗi dịch cho tính năng mới
     const i18n = {
       en: {
         cleanButton: 'Clean My Feed',
@@ -34,13 +33,16 @@
         expandNewsFeed: 'Expand News Feed Full Width',
         language: 'Language',
         verbosity: 'Log Level',
-        // Thêm các chuỗi dịch mới
         theme: 'Theme',
         themeDark: 'Dark',
         themeLight: 'Light',
         toggleAll: 'Toggle All Features',
         enableAll: 'Enable All',
-        disableAll: 'Disable All'
+        disableAll: 'Disable All',
+        saveSuccess: '✅ Settings saved. Reloading...',
+        saveError: '❌ Error saving settings',
+        cleanSuccess: '✅ Feed cleaned successfully!',
+        cleanError: '❌ Error cleaning feed'
       },
       vi: {
         cleanButton: 'Dọn dẹp bảng tin',
@@ -56,13 +58,16 @@
         expandNewsFeed: 'Mở rộng bài viết toàn khung',
         language: 'Ngôn ngữ',
         verbosity: 'Chi tiết ghi log',
-        // Thêm các chuỗi dịch mới
         theme: 'Giao diện',
         themeDark: 'Tối',
         themeLight: 'Sáng',
         toggleAll: 'Bật/tắt tất cả tính năng',
         enableAll: 'Bật tất cả',
-        disableAll: 'Tắt tất cả'
+        disableAll: 'Tắt tất cả',
+        saveSuccess: '✅ Đã lưu cài đặt. Đang tải lại...',
+        saveError: '❌ Lỗi khi lưu cài đặt',
+        cleanSuccess: '✅ Đã dọn dẹp bảng tin thành công!',
+        cleanError: '❌ Lỗi khi dọn dẹp bảng tin'
       }
     }[lang];
     
@@ -70,9 +75,7 @@
       return content.replace(/[-\u001F\u007F-\u009F]/g, '').trim();
     };
     
-    // Tạo CSS dựa trên theme
     const createStyles = (currentTheme) => {
-      // CSS chung cho cả hai theme
       const commonCSS = `
         #fbcmf-clean-btn {
           position: fixed; bottom: 20px; right: 20px; z-index: 9999;
@@ -122,7 +125,6 @@
         }
       `;
       
-      // CSS cho dark theme
       const darkCSS = `
         #fbcmf-clean-btn {
           background: #1c1e21; color: white; border: none;
@@ -159,7 +161,6 @@
         }
       `;
       
-      // CSS cho light theme
       const lightCSS = `
         #fbcmf-clean-btn {
           background: #f0f2f5; color: #1c1e21; border: 1px solid #dadde1;
@@ -200,12 +201,9 @@
       return commonCSS + (currentTheme === 'dark' ? darkCSS : lightCSS);
     };
     
-    // Tạo HTML cho popup
     const createPopupHTML = () => {
       return cleanContent(`
         <h3>${i18n.settingsTitle}</h3>
-        
-        <!-- Phần bật/tắt tất cả tính năng -->
         <div class="fbcmf-toggle-group">
           <div>${i18n.toggleAll}</div>
           <div class="fbcmf-button-group">
@@ -213,7 +211,6 @@
             <button id="fbcmf-disable-all" class="fbcmf-toggle-btn disable">${i18n.disableAll}</button>
           </div>
         </div>
-        
         <label><input type="checkbox" id="fbcmf-blockSponsored"> ${i18n.blockSponsored}</label>
         <label><input type="checkbox" id="fbcmf-blockSuggested"> ${i18n.blockSuggested}</label>
         <label><input type="checkbox" id="fbcmf-blockReels"> ${i18n.blockReels}</label>
@@ -227,19 +224,16 @@
             <option value="en" ${lang === 'en' ? 'selected' : ''}>English</option>
           </select>
         </label>
-        
-        <!-- Tùy chọn theme -->
         <label>${i18n.theme}:
           <select id="fbcmf-theme">
-            <option value="dark" ${theme === 'dark' ? 'selected' : ''}>${i18n.themeDark}</option>
             <option value="light" ${theme === 'light' ? 'selected' : ''}>${i18n.themeLight}</option>
+            <option value="dark" ${theme === 'dark' ? 'selected' : ''}>${i18n.themeDark}</option>
           </select>
         </label>
-        
         <label>${i18n.verbosity}:
           <select id="fbcmf-verbosity">
-            <option value="normal">Normal</option>
-            <option value="verbose">Verbose</option>
+            <option value="normal" ${settings.verbosity === 'normal' ? 'selected' : ''}>Normal</option>
+            <option value="verbose" ${settings.verbosity === 'verbose' ? 'selected' : ''}>Verbose</option>
           </select>
         </label>
         <button id="fbcmf-save-btn">${i18n.save}</button>
@@ -247,8 +241,7 @@
       `);
     };
     
-    // Gán giá trị cho các phần tử trong popup
-    const loadSettingsToUI = (retryCount = 0, maxRetries = 5) => {
+    const loadSettingsToUI = () => {
       try {
         const inputs = {
           'fbcmf-blockSponsored': settings.blockSponsored,
@@ -260,7 +253,7 @@
           'fbcmf-language': settings.language || 'vi',
           'fbcmf-verbosity': settings.verbosity || 'normal',
           'fbcmf-keywordInput': (settings.blockedKeywords || []).join(', '),
-          'fbcmf-theme': settings.theme || 'dark'
+          'fbcmf-theme': settings.theme || 'light'
         };
         
         let missingElements = [];
@@ -280,14 +273,8 @@
         }
         
         if (missingElements.length > 0) {
-          if (retryCount < maxRetries) {
-            console.log(`[UIManager] Một số phần tử chưa sẵn sàng (${missingElements.join(', ')}), thử lại sau 100ms...`);
-            setTimeout(() => loadSettingsToUI(retryCount + 1, maxRetries), 100);
-            return false;
-          } else {
-            console.error(`[UIManager] Không thể tìm thấy các phần tử sau ${maxRetries} lần thử:`, missingElements);
-            return false;
-          }
+          console.error('[UIManager] Không tìm thấy các phần tử:', missingElements);
+          return false;
         }
         
         console.log('[UIManager] Đã tải cài đặt vào giao diện');
@@ -298,8 +285,7 @@
       }
     };
     
-    // Gắn sự kiện cho các phần tử trong popup
-    const attachEvents = (retryCount = 0, maxRetries = 10) => {
+    const attachEvents = () => {
       try {
         const elements = {
           cleanBtn: document.getElementById('fbcmf-clean-btn'),
@@ -316,29 +302,20 @@
           .map(([name]) => name);
         
         if (missingElements.length > 0) {
-          if (retryCount < maxRetries) {
-            console.warn(`[UIManager] Một số phần tử chưa sẵn sàng (${missingElements.join(', ')}), thử lại lần ${retryCount + 1}`);
-            setTimeout(() => attachEvents(retryCount + 1, maxRetries), 100);
-            return;
-          } else {
-            console.error('[UIManager] Không tìm thấy các phần tử sau nhiều lần thử:', missingElements);
-            return;
-          }
+          console.error('[UIManager] Không tìm thấy các phần tử:', missingElements);
+          return false;
         }
         
-        // Sự kiện hiển thị/ẩn popup
         elements.cleanBtn.addEventListener('click', () => {
           console.log('[UIManager] Nút clean-btn được nhấn');
           const isVisible = elements.popup.style.display === 'block';
           elements.popup.style.display = isVisible ? 'none' : 'block';
           
-          // Nếu hiển thị popup, đảm bảo các giá trị được cập nhật
           if (!isVisible) {
-            setTimeout(() => loadSettingsToUI(), 50);
+            loadSettingsToUI();
           }
         });
         
-        // Sự kiện lưu cài đặt
         elements.saveBtn.addEventListener('click', () => {
           console.log('[UIManager] Nút save-btn được nhấn');
           try {
@@ -355,7 +332,7 @@
               expandNewsFeed: document.getElementById('fbcmf-expandNewsFeed')?.checked ?? false,
               language: document.getElementById('fbcmf-language')?.value ?? 'vi',
               verbosity: document.getElementById('fbcmf-verbosity')?.value ?? 'normal',
-              theme: document.getElementById('fbcmf-theme')?.value ?? 'dark'
+              theme: document.getElementById('fbcmf-theme')?.value ?? 'light'
             };
             
             console.log('[UIManager] Cài đặt mới:', newSettings);
@@ -363,42 +340,41 @@
             
             if (saved) {
               console.log('[UIManager] Đã lưu cài đặt:', newSettings);
-              alert('✅ Cài đặt đã được lưu. Vui lòng tải lại trang để áp dụng.');
+              alert(i18n.saveSuccess);
               location.reload();
             } else {
               console.error('[UIManager] Lưu cài đặt thất bại');
-              alert('❌ Lỗi khi lưu cài đặt');
+              alert(i18n.saveError);
             }
           } catch (e) {
             console.error('[UIManager] Lỗi khi lưu cài đặt:', e);
-            alert('❌ Lỗi khi lưu cài đặt: ' + e.message);
+            alert(i18n.saveError + ': ' + e.message);
           }
         });
         
-        // Sự kiện dọn dẹp ngay
         elements.cleanNowBtn.addEventListener('click', () => {
           console.log('[UIManager] Nút clean-now-btn được nhấn');
           try {
-            // Sử dụng cleanFeed nếu có, nếu không thì reload
             if (window.FBCMF && typeof window.FBCMF.cleanFeed === 'function') {
               const result = window.FBCMF.cleanFeed();
               if (result) {
-                alert('✅ Đã dọn dẹp bảng tin thành công!');
+                alert(i18n.cleanSuccess);
               } else {
                 console.log('[UIManager] Làm mới trang để áp dụng bộ lọc');
+                alert(i18n.cleanError);
                 location.reload();
               }
             } else {
               console.log('[UIManager] Làm mới trang để áp dụng bộ lọc');
+              alert(i18n.cleanError);
               location.reload();
             }
           } catch (e) {
-            console.error('[UIManager] Lỗi khi làm mới trang:', e);
-            alert('❌ Lỗi khi làm mới trang: ' + e.message);
+            console.error('[UIManager] Lỗi khi dọn dẹp:', e);
+            alert(i18n.cleanError + ': ' + e.message);
           }
         });
         
-        // Sự kiện cho nút bật tất cả
         elements.enableAllBtn.addEventListener('click', () => {
           console.log('[UIManager] Nút enable-all được nhấn');
           const featureCheckboxes = [
@@ -416,9 +392,22 @@
               checkbox.checked = true;
             }
           });
+          const saved = saveSettings({
+            blockSponsored: true,
+            blockSuggested: true,
+            blockReels: true,
+            blockGIFs: true,
+            blockKeywords: true,
+            expandNewsFeed: true
+          });
+          if (saved) {
+            alert(i18n.saveSuccess);
+            location.reload();
+          } else {
+            alert(i18n.saveError);
+          }
         });
         
-        // Sự kiện cho nút tắt tất cả
         elements.disableAllBtn.addEventListener('click', () => {
           console.log('[UIManager] Nút disable-all được nhấn');
           const featureCheckboxes = [
@@ -436,17 +425,36 @@
               checkbox.checked = false;
             }
           });
+          const saved = saveSettings({
+            blockSponsored: false,
+            blockSuggested: false,
+            blockReels: false,
+            blockGIFs: false,
+            blockKeywords: false,
+            expandNewsFeed: false
+          });
+          if (saved) {
+            alert(i18n.saveSuccess);
+            location.reload();
+          } else {
+            alert(i18n.saveError);
+          }
         });
         
-        // Sự kiện cho thay đổi theme
         elements.themeSelect.addEventListener('change', () => {
           console.log('[UIManager] Theme được thay đổi');
           const newTheme = elements.themeSelect.value;
           const styleEl = document.getElementById('fbcmf-styles');
           
           if (styleEl) {
-            // Cập nhật style theo theme mới
             styleEl.textContent = cleanContent(createStyles(newTheme));
+          }
+          const saved = saveSettings({ theme: newTheme });
+          if (saved) {
+            alert(i18n.saveSuccess);
+            location.reload();
+          } else {
+            alert(i18n.saveError);
           }
         });
         
@@ -458,7 +466,6 @@
       }
     };
     
-    // Khởi tạo UI
     const initUI = async () => {
       if (!document.head || !document.body) {
         console.warn('[UIManager] DOM chưa sẵn sàng, thử lại sau 1s');
@@ -467,51 +474,47 @@
       }
       
       try {
-        // Kiểm tra xem UI đã được khởi tạo chưa
         if (document.getElementById('fbcmf-clean-btn')) {
           console.log('[UIManager] UI đã được khởi tạo trước đó');
           return;
         }
         
-        // 1. Thêm style
         const style = document.createElement('style');
         style.id = 'fbcmf-styles';
         style.textContent = cleanContent(createStyles(theme));
         document.head.appendChild(style);
         console.log('[UIManager] Đã thêm style vào head');
         
-        // 2. Thêm nút dọn dẹp
         const btn = document.createElement('button');
         btn.id = 'fbcmf-clean-btn';
         btn.innerText = i18n.cleanButton;
         document.body.appendChild(btn);
         console.log('[UIManager] Đã thêm nút clean-btn');
         
-        // 3. Tạo popup
         const popup = document.createElement('div');
         popup.id = 'fbcmf-settings-popup';
-        document.body.appendChild(popup);
-        
-        // 4. Đợi một chút để đảm bảo popup đã được thêm vào DOM
-        await new Promise(resolve => setTimeout(resolve, 0));
-        
-        // 5. Thêm nội dung HTML vào popup
         popup.innerHTML = createPopupHTML();
+        document.body.appendChild(popup);
         console.log('[UIManager] Đã thêm popup');
         
-        // 6. Đợi một chút để đảm bảo nội dung popup đã được render
-        await new Promise(resolve => requestAnimationFrame(resolve));
-        
-        // 7. Tải cài đặt vào giao diện
-        setTimeout(() => {
-          loadSettingsToUI();
+        // Dùng MutationObserver để đảm bảo popup render
+        const finalizeUI = () => {
+          const popupEl = document.getElementById('fbcmf-settings-popup');
+          const testElement = document.getElementById('fbcmf-blockSponsored');
+          if (!popupEl || !testElement) {
+            console.warn('[UIManager] Popup hoặc phần tử con chưa sẵn sàng, thử lại sau 100ms');
+            setTimeout(finalizeUI, 100);
+            return;
+          }
           
-          // 8. Gắn sự kiện cho các phần tử
-          setTimeout(() => {
-            attachEvents();
-          }, 100);
-        }, 100);
+          if (loadSettingsToUI() && attachEvents()) {
+            console.log('[UIManager] ✅ Đã hoàn tất khởi tạo giao diện');
+          } else {
+            console.error('[UIManager] Không thể hoàn tất khởi tạo giao diện');
+          }
+        };
         
+        finalizeUI();
       } catch (e) {
         console.error('[UIManager] Lỗi khi khởi tạo giao diện:', e);
       }
@@ -519,14 +522,12 @@
       console.log('[UIManager] ✅ Đã khởi tạo UIManager.');
     };
     
-    // Khởi tạo UI khi DOM sẵn sàng
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initUI);
     } else {
       setTimeout(initUI, 200);
     }
     
-    // Trả về API cho context
     return {
       updateTheme: (newTheme) => {
         const styleEl = document.getElementById('fbcmf-styles');
