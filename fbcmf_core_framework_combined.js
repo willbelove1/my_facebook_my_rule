@@ -11,7 +11,6 @@
     settings: {},
     context: {},
 
-    // Đăng ký mô-đun mới
     registerModule(name, moduleFn) {
       if (typeof moduleFn !== 'function') {
         console.warn(`[FBCMF] Module "${name}" không hợp lệ.`);
@@ -23,26 +22,19 @@
       }
     },
 
-    // Lưu cài đặt vào localStorage
     saveSettings(newSettings) {
       try {
         this.settings = { ...this.settings, ...newSettings };
         localStorage.setItem('fbcmf-settings', JSON.stringify(this.settings));
-        
-        // Cập nhật context với settings mới
         if (this.context && this.context.settings) {
           this.context.settings = this.settings;
         }
-        
         if (this.settings.verbosity === 'verbose') {
           console.log('[FBCMF] Đã lưu cài đặt:', this.settings);
         }
-        
-        // Kích hoạt sự kiện settings-saved
         document.dispatchEvent(new CustomEvent('fbcmf:settings-saved', { 
           detail: this.settings 
         }));
-        
         return true;
       } catch (e) {
         console.error('[FBCMF] Lỗi khi lưu cài đặt:', e);
@@ -50,7 +42,6 @@
       }
     },
 
-    // Tải cài đặt từ localStorage
     loadSettings() {
       try {
         const stored = localStorage.getItem('fbcmf-settings');
@@ -65,13 +56,10 @@
           verbosity: 'normal',
           language: 'vi'
         };
-        
         this.settings = stored ? { ...defaultSettings, ...JSON.parse(stored) } : defaultSettings;
-        
         if (this.settings.verbosity === 'verbose') {
           console.log('[FBCMF] Đã tải cài đặt:', this.settings);
         }
-        
         return this.settings;
       } catch (e) {
         console.error('[FBCMF] Lỗi khi tải cài đặt:', e);
@@ -90,7 +78,6 @@
       }
     },
 
-    // Khởi tạo framework chính
     async init() {
       if (!document.head || !document.body) {
         console.warn('[FBCMF] DOM chưa sẵn sàng, thử lại sau 1s');
@@ -98,11 +85,7 @@
         return;
       }
       console.log('[FBCMF] 🚀 Initializing Core Framework...');
-
-      // 1. Tải cài đặt
       this.loadSettings();
-
-      // 2. Khởi tạo ngữ cảnh chung
       this.context = {
         DOMUtils: this.DOMUtils,
         settings: this.settings,
@@ -110,8 +93,6 @@
         loadSettings: this.loadSettings.bind(this)
       };
       console.log('[FBCMF] Đã khởi tạo context:', Object.keys(this.context));
-
-      // 3. Chạy các module core trước
       const coreModules = ['FilterRegistry', 'SettingsManager', 'UIManager'];
       for (const coreName of coreModules) {
         if (this.modules.has(coreName)) {
@@ -126,8 +107,6 @@
           }
         }
       }
-      
-      // 4. Chạy các module còn lại
       for (const [name, moduleFn] of this.modules.entries()) {
         if (!coreModules.includes(name)) {
           try {
@@ -141,11 +120,9 @@
           }
         }
       }
-
       console.log('[FBCMF] ✅ All modules initialized.');
     },
 
-    // Tiện ích DOM
     DOMUtils: {
       query(selector, context = document) {
         return Array.from(context.querySelectorAll(selector));
@@ -160,10 +137,8 @@
     }
   };
 
-  // Xuất ra global
   window.FBCMF = FBCMF;
 
-  // Tự khởi chạy
   if (!window.__FBCMF_SKIP_INIT__) {
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => FBCMF.init());
@@ -171,5 +146,4 @@
       setTimeout(() => FBCMF.init(), 100);
     }
   }
-
 })();
