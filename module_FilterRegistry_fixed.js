@@ -33,6 +33,7 @@
       apply,
       list: () => Array.from(filters.keys())
     };
+    window.FilterRegistry = ctx.FilterRegistry; // Đảm bảo global access
     console.log('[FilterRegistry] ✅ Đã sẵn sàng.');
   });
 })();
