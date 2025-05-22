@@ -8,7 +8,7 @@
     console.error('[UIManager] FBCMF không được định nghĩa');
     return;
   }
-  FBCMF.registerModule('UIManager', async ({ settings, saveSettings }) => {
+  window.FBCMF.registerModule('UIManager', async ({ settings, saveSettings }) => {
     if (!saveSettings) {
       console.error('[UIManager] saveSettings không được định nghĩa');
       return;
@@ -167,7 +167,6 @@
               };
               saveSettings(newSettings);
               console.log('[UIManager] Đã lưu cài đặt:', newSettings);
-              localStorage.setItem('fbcmf-settings', JSON.stringify(newSettings));
               alert('✅ Cài đặt đã được lưu. Vui lòng tải lại trang để áp dụng.');
               location.reload();
             } catch (e) {
