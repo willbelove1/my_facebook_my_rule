@@ -1,7 +1,7 @@
 /**
  * FBCMF - Facebook Cleaner Modular Framework (Core)
  * Kiến trúc mở rộng (Extensible Architecture) cho các module gắn thêm
- * Phiên bản: 1.1.0 (Fixed)
+ * Phiên bản: 1.1.1 (Fixed)
  */
 (function () {
   'use strict';
@@ -38,7 +38,7 @@
           console.log('[FBCMF] Đã lưu cài đặt:', this.settings);
         }
         
-        // Kích hoạt sự kiện settings-saved để các module có thể lắng nghe
+        // Kích hoạt sự kiện settings-saved
         document.dispatchEvent(new CustomEvent('fbcmf:settings-saved', { 
           detail: this.settings 
         }));
@@ -75,7 +75,6 @@
         return this.settings;
       } catch (e) {
         console.error('[FBCMF] Lỗi khi tải cài đặt:', e);
-        // Fallback về cài đặt mặc định nếu có lỗi
         this.settings = {
           blockSponsored: true,
           blockSuggested: true,
@@ -93,6 +92,11 @@
 
     // Khởi tạo framework chính
     async init() {
+      if (!document.head || !document.body) {
+        console.warn('[FBCMF] DOM chưa sẵn sàng, thử lại sau 1s');
+        setTimeout(() => this.init(), 1000);
+        return;
+      }
       console.log('[FBCMF] 🚀 Initializing Core Framework...');
 
       // 1. Tải cài đặt
@@ -106,16 +110,13 @@
         loadSettings: this.loadSettings.bind(this)
       };
       console.log('[FBCMF] Đã khởi tạo context:', Object.keys(this.context));
-      // 3. Chạy từng mô-đun đã đăng ký theo thứ tự
-      // Ưu tiên các module core trước
+
+      // 3. Chạy các module core trước
       const coreModules = ['FilterRegistry', 'SettingsManager', 'UIManager'];
-      
-      // Chạy các module core trước
       for (const coreName of coreModules) {
         if (this.modules.has(coreName)) {
           try {
             const result = await this.modules.get(coreName)(this.context);
-            // Cập nhật context với kết quả trả về từ module (nếu có)
             if (result && typeof result === 'object') {
               this.context[coreName] = result;
             }
@@ -126,12 +127,11 @@
         }
       }
       
-      // Sau đó chạy các module còn lại
+      // 4. Chạy các module còn lại
       for (const [name, moduleFn] of this.modules.entries()) {
         if (!coreModules.includes(name)) {
           try {
             const result = await moduleFn(this.context);
-            // Cập nhật context với kết quả trả về từ module (nếu có)
             if (result && typeof result === 'object') {
               this.context[name] = result;
             }
@@ -163,13 +163,12 @@
   // Xuất ra global
   window.FBCMF = FBCMF;
 
-  // Tự khởi chạy nếu không phải module riêng lẻ
+  // Tự khởi chạy
   if (!window.__FBCMF_SKIP_INIT__) {
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => FBCMF.init());
     } else {
-      // Nếu DOM đã load xong, khởi tạo ngay
-      setTimeout(() => FBCMF.init(), 0);
+      setTimeout(() => FBCMF.init(), 100);
     }
   }
 
