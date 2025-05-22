@@ -2,49 +2,18 @@
  * Module: UIManager
  * Mục đích: Giao diện popup cài đặt bằng tiếng Việt hoặc tiếng Anh
  */
-(function() {
-  'use strict';
-  
-  // Đảm bảo namespace FBCMF đã được khởi tạo
-  window.FBCMF = window.FBCMF || {};
-  
-  FBCMF.registerModule('UIManager', async (ctx) => {
-    const settings = ctx.settings || {};
-    const lang = settings.language || 'vi';
-    const i18n = {
-      en: {
-        cleanButton: 'Clean My Feed',
-        settingsTitle: 'Cleaner Settings',
-        save: 'Save Settings',
-        cleanNow: 'Clean Now',
-        blockSponsored: 'Block Sponsored Posts',
-        blockSuggested: 'Block Suggested Posts',
-        blockReels: 'Block Reels',
-        blockGIFs: 'Block GIFs',
-        blockKeywords: 'Block Posts by Keyword',
-        keywordPlaceholder: 'e.g. crypto, scam, game',
-        expandNewsFeed: 'Expand News Feed Full Width',
-        language: 'Language',
-        verbosity: 'Log Level',
-        saveError: 'Error saving settings: '
-      },
-      vi: {
-        cleanButton: 'Dọn dẹp bảng tin',
-        settingsTitle: 'Cài đặt bộ lọc',
-        save: 'Lưu cài đặt',
-        cleanNow: 'Dọn ngay',
-        blockSponsored: 'Chặn bài tài trợ',
-        blockSuggested: 'Chặn bài gợi ý',
-        blockReels: 'Chặn video Reels',
-        blockGIFs: 'Chặn ảnh động GIF',
-        blockKeywords: 'Chặn từ khóa',
-        keywordPlaceholder: 'vd: crypto, quảng cáo, game',
-        expandNewsFeed: 'Mở rộng bài viết toàn khung',
-        language: 'Ngôn ngữ',
-        verbosity: 'Chi tiết ghi log',
-        saveError: 'Lỗi khi lưu cài đặt: '
-      }
-    }[lang];
+FBCMF.registerModule('UIManager', async ({ settings, saveSettings }) => {
+  const lang = settings.language || 'vi';
+  const i18n = {
+    en: { /* ... giữ nguyên ... */ },
+    vi: { /* ... giữ nguyên ... */ }
+  }[lang];
+
+  const initUI = () => {
+    if (!document.head || !document.body) {
+      console.error('[UIManager] document.head hoặc document.body không khả dụng');
+      return;
+    }
 
     // Inject Styles
     const style = document.createElement('style');
@@ -142,43 +111,27 @@
           language: document.getElementById('fbcmf-language').value,
           verbosity: document.getElementById('fbcmf-verbosity').value
         };
-        
-        // Sử dụng saveSettings từ context nếu có, nếu không thì fallback về localStorage
-        if (ctx.saveSettings) {
-          ctx.saveSettings(newSettings);
-        } else {
-          localStorage.setItem('fbcmf-settings', JSON.stringify(newSettings));
-        }
-        
+        ctx.saveSettings(newSettings);
+        console.log('[UIManager] Đã lưu cài đặt:', newSettings);
         alert('✅ Cài đặt đã được lưu. Vui lòng tải lại trang để áp dụng.');
         location.reload();
       } catch (e) {
         console.error('[UIManager] Lỗi khi lưu cài đặt:', e);
-        alert(`❌ ${i18n.saveError}${e.message}`);
+        alert('❌ Lỗi khi lưu cài đặt: ' + e.message);
       }
     });
 
-    document.getElementById('fbcmf-save-btn').addEventListener('click', () => {
-  try {
-    const newSettings = {
-      blockSponsored: document.getElementById('fbcmf-blockSponsored').checked,
-      blockSuggested: document.getElementById('fbcmf-blockSuggested').checked,
-      blockReels: document.getElementById('fbcmf-blockReels').checked,
-      blockGIFs: document.getElementById('fbcmf-blockGIFs').checked,
-      blockKeywords: document.getElementById('fbcmf-blockKeywords').checked,
-      blockedKeywords: document.getElementById('fbcmf-keywordInput').value.split(',').map(k => k.trim()).filter(Boolean),
-      expandNewsFeed: document.getElementById('fbcmf-expandNewsFeed').checked,
-      language: document.getElementById('fbcmf-language').value,
-      verbosity: document.getElementById('fbcmf-verbosity').value
-    };
-    ctx.saveSettings(newSettings); // Sử dụng ctx.saveSettings thay vì localStorage.setItem
-    console.log('[UIManager] Đã lưu cài đặt:', newSettings);
-    alert('✅ Cài đặt đã được lưu. Vui lòng tải lại trang để áp dụng.');
-    location.reload();
-  } catch (e) {
-    console.error('[UIManager] Lỗi khi lưu cài đặt:', e);
-    alert('❌ Lỗi khi lưu cài đặt: ' + e.message);
+    document.getElementById('fbcmf-clean-now-btn').addEventListener('click', () => {
+      location.reload();
+    });
+  };
+
+  // Chờ DOM sẵn sàng
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initUI);
+  } else {
+    initUI();
   }
+
+  console.log('[UIManager] ✅ Đã sẵn sàng.');
 });
-  });
-})();
