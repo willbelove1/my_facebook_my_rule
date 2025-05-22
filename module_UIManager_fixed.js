@@ -161,5 +161,19 @@
     document.getElementById('fbcmf-clean-now-btn').addEventListener('click', () => {
       location.reload();
     });
+    document.getElementById('fbcmf-save-btn').addEventListener('click', () => {
+      console.log('[UIManager] Bắt đầu lưu cài đặt');
+      try {
+      const newSettings = {...};
+      console.log('[UIManager] Cài đặt mới:', newSettings);
+      ctx.saveSettings(newSettings);
+      console.log('[UIManager] Đã lưu vào localStorage:', localStorage.getItem('fbcmf-settings'));
+      alert('✅ Cài đặt đã được lưu. Vui lòng tải lại trang để áp dụng.');
+      location.reload();
+      } catch (e) {
+      console.error('[UIManager] Lỗi khi lưu cài đặt:', e);
+      alert('❌ Lỗi khi lưu cài đặt: ' + e.message);
+  }
+});
   });
 })();
