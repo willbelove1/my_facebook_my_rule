@@ -49,7 +49,7 @@
     const cleanContent = (content) => {
       return content.replace(/[-\u001F\u007F-\u009F]/g, '').trim();
     };
-    const initUI = () => {
+    const initUI = async () => {
       if (!document.head || !document.body) {
         console.warn('[UIManager] DOM chưa sẵn sàng, thử lại sau 1s');
         setTimeout(initUI, 1000);
@@ -135,93 +135,119 @@
 
         // Tải cài đặt vào giao diện
         try {
-          document.getElementById('fbcmf-blockSponsored').checked = !!settings.blockSponsored;
-          document.getElementById('fbcmf-blockSuggested').checked = !!settings.blockSuggested;
-          document.getElementById('fbcmf-blockReels').checked = !!settings.blockReels;
-          document.getElementById('fbcmf-blockGIFs').checked = !!settings.blockGIFs;
-          document.getElementById('fbcmf-blockKeywords').checked = !!settings.blockKeywords;
-          document.getElementById('fbcmf-keywordInput').value = (settings.blockedKeywords || []).join(', ');
-          document.getElementById('fbcmf-expandNewsFeed').checked = !!settings.expandNewsFeed;
-          document.getElementById('fbcmf-language').value = settings.language || 'vi';
-          document.getElementById('fbcmf-verbosity').value = settings.verbosity || 'normal';
+          const inputs = {
+            'fbcmf-blockSponsored': settings.blockSponsored,
+            'fbcmf-blockSuggested': settings.blockSuggested,
+            'fbcmf-blockReels': settings.blockReels,
+            'fbcmf-blockGIFs': settings.blockGIFs,
+            'fbcmf-blockKeywords': settings.blockKeywords,
+            'fbcmf-expandNewsFeed': settings.expandNewsFeed,
+            'fbcmf-language': settings.language || 'vi',
+            'fbcmf-verbosity': settings.verbosity || 'normal',
+            'fbcmf-keywordInput': (settings.blockedKeywords || []).join(', ')
+          };
+          for (const [id, value] of Object.entries(inputs)) {
+            const el = document.getElementById(id);
+            if (!el) {
+              console.warn(`[UIManager] Không tìm thấy phần tử ${id}`);
+              continue;
+            }
+            if (el.type === 'checkbox') {
+              el.checked = !!value;
+            } else {
+              el.value = value;
+            }
+          }
           console.log('[UIManager] Đã tải cài đặt vào giao diện');
         } catch (e) {
           console.error('[UIManager] Lỗi khi tải cài đặt vào giao diện:', e);
         }
 
-        // Gắn sự kiện
-        try {
-          const cleanBtn = document.getElementById('fbcmf-clean-btn');
-          if (!cleanBtn) {
-            console.error('[UIManager] Không tìm thấy fbcmf-clean-btn');
-            return;
-          }
-          cleanBtn.addEventListener('click', () => {
-            console.log('[UIManager] Nút clean-btn được nhấn');
-            popup.style.display = popup.style.display === 'none' ? 'block' : 'none';
-          });
+        // Gắn sự kiện với retry
+        const attachEvents = async (attempt = 1, maxAttempts = 5) => {
+          try {
+            const cleanBtn = document.getElementById('fbcmf-clean-btn');
+            const saveBtn = document.getElementById('fbcmf-save-btn');
+            const cleanNowBtn = document.getElementById('fbcmf-clean-now-btn');
 
-          const saveBtn = document.getElementById('fbcmf-save-btn');
-          if (!saveBtn) {
-            console.error('[UIManager] Không tìm thấy fbcmf-save-btn');
-            return;
-          }
-          saveBtn.addEventListener('click', () => {
-            console.log('[UIManager] Nút save-btn được nhấn');
-            try {
-              const newSettings = {
-                blockSponsored: document.getElementById('fbcmf-blockSponsored').checked,
-                blockSuggested: document.getElementById('fbcmf-blockSuggested').checked,
-                blockReels: document.getElementById('fbcmf-blockReels').checked,
-                blockGIFs: document.getElementById('fbcmf-blockGIFs').checked,
-                blockKeywords: document.getElementById('fbcmf-blockKeywords').checked,
-                blockedKeywords: document.getElementById('fbcmf-keywordInput').value
-                  .split(',')
-                  .map(k => k.trim())
-                  .filter(Boolean),
-                expandNewsFeed: document.getElementById('fbcmf-expandNewsFeed').checked,
-                language: document.getElementById('fbcmf-language').value,
-                verbosity: document.getElementById('fbcmf-verbosity').value
-              };
-              const saved = saveSettings(newSettings);
-              if (saved) {
-                console.log('[UIManager] Đã lưu cài đặt:', newSettings);
-                alert('✅ Cài đặt đã được lưu. Vui lòng tải lại trang để áp dụng.');
-                location.reload();
-              } else {
-                console.error('[UIManager] Lưu cài đặt thất bại');
-                alert('❌ Lỗi khi lưu cài đặt');
+            if (!cleanBtn || !saveBtn || !cleanNowBtn) {
+              if (attempt >= maxAttempts) {
+                console.error('[UIManager] Không tìm thấy các phần tử sau nhiều lần thử:', {
+                  cleanBtn: !!cleanBtn,
+                  saveBtn: !!saveBtn,
+                  cleanNowBtn: !!cleanNowBtn
+                });
+                return;
               }
-            } catch (e) {
-              console.error('[UIManager] Lỗi khi lưu cài đặt:', e);
-              alert('❌ Lỗi khi lưu cài đặt: ' + e.message);
+              console.warn(`[UIManager] Một số phần tử chưa sẵn sàng, thử lại lần ${attempt + 1}`);
+              setTimeout(() => attachEvents(attempt + 1, maxAttempts), 1000);
+              return;
             }
-          });
 
-          const cleanNowBtn = document.getElementById('fbcmf-clean-now-btn');
-          if (!cleanNowBtn) {
-            console.error('[UIManager] Không tìm thấy fbcmf-clean-now-btn');
-            return;
+            cleanBtn.addEventListener('click', () => {
+              console.log('[UIManager] Nút clean-btn được nhấn');
+              popup.style.display = popup.style.display === 'none' ? 'block' : 'none';
+            });
+
+            saveBtn.addEventListener('click', () => {
+              console.log('[UIManager] Nút save-btn được nhấn');
+              try {
+                const newSettings = {
+                  blockSponsored: document.getElementById('fbcmf-blockSponsored').checked,
+                  blockSuggested: document.getElementById('fbcmf-blockSuggested').checked,
+                  blockReels: document.getElementById('fbcmf-blockReels').checked,
+                  blockGIFs: document.getElementById('fbcmf-blockGIFs').checked,
+                  blockKeywords: document.getElementById('fbcmf-blockKeywords').checked,
+                  blockedKeywords: document.getElementById('fbcmf-keywordInput').value
+                    .split(',')
+                    .map(k => k.trim())
+                    .filter(Boolean),
+                  expandNewsFeed: document.getElementById('fbcmf-expandNewsFeed').checked,
+                  language: document.getElementById('fbcmf-language').value,
+                  verbosity: document.getElementById('fbcmf-verbosity').value
+                };
+                const saved = saveSettings(newSettings);
+                if (saved) {
+                  console.log('[UIManager] Đã lưu cài đặt:', newSettings);
+                  alert('✅ Cài đặt đã được lưu. Vui lòng tải lại trang để áp dụng.');
+                  location.reload();
+                } else {
+                  console.error('[UIManager] Lưu cài đặt thất bại');
+                  alert('❌ Lỗi khi lưu cài đặt');
+                }
+              } catch (e) {
+                console.error('[UIManager] Lỗi khi lưu cài đặt:', e);
+                alert('❌ Lỗi khi lưu cài đặt: ' + e.message);
+              }
+            });
+
+            cleanNowBtn.addEventListener('click', () => {
+              console.log('[UIManager] Nút clean-now-btn được nhấn');
+              try {
+                console.log('[UIManager] Làm mới trang để áp dụng bộ lọc');
+                location.reload();
+              } catch (e) {
+                console.error('[UIManager] Lỗi khi làm mới trang:', e);
+                alert('❌ Lỗi khi làm mới trang: ' + e.message);
+              }
+            });
+
+            console.log('[UIManager] Đã gắn sự kiện cho các nút');
+          } catch (e) {
+            console.error('[UIManager] Lỗi khi gắn sự kiện:', e);
           }
-          cleanNowBtn.addEventListener('click', () => {
-            console.log('[UIManager] Nút clean-now-btn được nhấn');
-            try {
-              console.log('[UIManager] Làm mới trang để áp dụng bộ lọc');
-              location.reload();
-            } catch (e) {
-              console.error('[UIManager] Lỗi khi làm mới trang:', e);
-              alert('❌ Lỗi khi làm mới trang: ' + e.message);
-            }
-          });
-        } catch (e) {
-          console.error('[UIManager] Lỗi khi thêm sự kiện:', e);
-        }
-      };
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initUI);
-      } else {
-        setTimeout(initUI, 100); // Đợi ngắn để đảm bảo DOM sẵn sàng
+        };
+
+        await attachEvents();
+      } catch (e) {
+        console.error('[UIManager] Lỗi khi khởi tạo giao diện:', e);
       }
       console.log('[UIManager] ✅ Đã khởi tạo UIManager.');
-    });
-  })();
+    };
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initUI);
+    } else {
+      setTimeout(initUI, 100);
+    }
+  });
+})();
