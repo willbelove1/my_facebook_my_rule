@@ -1,7 +1,7 @@
 /**
  * Module: UIManager
  * Mục đích: Giao diện popup cài đặt bằng tiếng Việt hoặc tiếng Anh
- * Phiên bản: 2.0.1 (Fixed for stability)
+ * Phiên bản: 2.0.2 (Thêm light mode và các tính năng từ enhanced)
  */
 (function() {
   'use strict';
@@ -22,7 +22,7 @@
     }
     
     const lang = settings.language || 'vi';
-    const theme = settings.theme || 'dark';
+    const theme = settings.theme || 'light'; // Mặc định là light mode
     
     const i18n = {
       en: {
@@ -231,7 +231,7 @@
             .filter(Boolean) ?? [],
           expandNewsFeed: document.getElementById('fbcmf-expandNewsFeed')?.checked ?? false,
           language: document.getElementById('fbcmf-language')?.value ?? 'vi',
-          theme: document.getElementById('fbcmf-theme')?.value ?? 'dark',
+          theme: document.getElementById('fbcmf-theme')?.value ?? 'light',
           verbosity: document.getElementById('fbcmf-verbosity')?.value ?? 'normal'
         };
         console.log('[UIManager] Cài đặt mới:', newSettings);
@@ -315,8 +315,8 @@
           </label>
           <label>${i18n.theme}:
             <select id="fbcmf-theme">
-              <option value="dark" ${theme === 'dark' ? 'selected' : ''}>${i18n.themeDark}</option>
               <option value="light" ${theme === 'light' ? 'selected' : ''}>${i18n.themeLight}</option>
+              <option value="dark" ${theme === 'dark' ? 'selected' : ''}>${i18n.themeDark}</option>
             </select>
           </label>
           <label>${i18n.verbosity}:
@@ -342,7 +342,7 @@
             'fbcmf-blockKeywords': settings.blockKeywords,
             'fbcmf-expandNewsFeed': settings.expandNewsFeed,
             'fbcmf-language': settings.language || 'vi',
-            'fbcmf-theme': settings.theme || 'dark',
+            'fbcmf-theme': settings.theme || 'light',
             'fbcmf-verbosity': settings.verbosity || 'normal',
             'fbcmf-keywordInput': (settings.blockedKeywords || []).join(', ')
           };
