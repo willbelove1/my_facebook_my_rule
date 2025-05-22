@@ -57,7 +57,6 @@
         return;
       }
       try {
-        // Thêm style
         const style = document.createElement('style');
         style.textContent = cleanContent(`
           #fbcmf-clean-btn {
@@ -97,14 +96,12 @@
         document.head.appendChild(style);
         console.log('[UIManager] Đã thêm style vào head');
 
-        // Thêm nút Clean
         const btn = document.createElement('button');
         btn.id = 'fbcmf-clean-btn';
         btn.innerText = i18n.cleanButton;
         document.body.appendChild(btn);
         console.log('[UIManager] Đã thêm nút clean-btn');
 
-        // Thêm popup
         const popup = document.createElement('div');
         popup.id = 'fbcmf-settings-popup';
         popup.innerHTML = cleanContent(`
@@ -134,7 +131,6 @@
         document.body.appendChild(popup);
         console.log('[UIManager] Đã thêm popup');
 
-        // Tải cài đặt vào giao diện
         try {
           const inputs = {
             'fbcmf-blockSponsored': settings.blockSponsored,
@@ -164,7 +160,6 @@
           console.error('[UIManager] Lỗi khi tải cài đặt vào giao diện:', e);
         }
 
-        // Gắn sự kiện với retry
         const attachEvents = async (attempt = 1, maxAttempts = 10) => {
           try {
             const cleanBtn = document.getElementById('fbcmf-clean-btn');
