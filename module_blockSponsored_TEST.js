@@ -1,6 +1,6 @@
 /**
- * Module: blockSponsored (nâng cấp)
- * Mục đích: Đăng ký bộ lọc "Được tài trợ"/"Sponsored" với khả năng nhận diện nâng cao
+ * Module: blockSponsored (nâng cấp từ CMF's detection logic)
+ * Mục đích: Lọc bài đăng được tài trợ/quảng cáo trên Facebook bằng kỹ thuật DOM nối chuỗi và phân tích nhãn
  */
 FBCMF.registerModule('blockSponsored', async ({ DOMUtils, settings, FilterRegistry }) => {
   if (!FilterRegistry) {
@@ -10,23 +10,30 @@ FBCMF.registerModule('blockSponsored', async ({ DOMUtils, settings, FilterRegist
   if (!settings.blockSponsored) return;
 
   function isSponsored(post) {
-    // 1. Ghép toàn bộ textContent từ các span liên tiếp
-    const spans = DOMUtils.query('span', post);
-    const fullText = spans.map(s => s.textContent).join('').toLowerCase();
+    // 1. Lấy toàn bộ text từ các span liên tiếp và nối lại
+    const textContent = Array.from(post.querySelectorAll('span'))
+      .map(span => span.textContent)
+      .join('')
+      .replace(/\s+/g, '')
+      .toLowerCase();
 
-    if (fullText.includes('được tài trợ') || fullText.includes('sponsored')) {
+    if (textContent.includes('đượctàitrợ') || textContent.includes('sponsored') || textContent.includes('paidpartnership')) {
       return true;
     }
 
-    // 2. Kiểm tra aria-label hoặc role bất thường
-    const potential = post.querySelector('[aria-label*="Sponsored"], [aria-label*="Được tài trợ"]');
-    if (potential) return true;
+    // 2. Kiểm tra các thuộc tính aria-label hoặc tooltip
+    const ariaMatch = post.querySelector('[aria-label*="Sponsored"], [aria-label*="Được tài trợ"]');
+    if (ariaMatch) return true;
 
-    // 3. Kiểm tra tooltip hoặc nhãn liên quan đến quảng cáo
-    const tooltips = DOMUtils.query('[role="button"]', post);
-    for (const el of tooltips) {
-      const label = el.getAttribute('aria-label') || '';
-      if (/quảng cáo|tại sao.*quảng cáo/i.test(label)) {
+    // 3. Kiểm tra các tooltip liên quan quảng cáo
+    const buttons = post.querySelectorAll('[role="button"]');
+    for (const btn of buttons) {
+      const label = btn.getAttribute('aria-label')?.toLowerCase() || '';
+      if (
+        label.includes('quảng cáo') ||
+        label.includes('tại sao') && label.includes('quảng') ||
+        label.includes('why am i seeing this ad')
+      ) {
         return true;
       }
     }
@@ -39,6 +46,6 @@ FBCMF.registerModule('blockSponsored', async ({ DOMUtils, settings, FilterRegist
   });
 
   if (settings.verbosity === 'verbose') {
-    console.log('[blockSponsored] Đã đăng ký bộ lọc với cải tiến nhận diện nâng cao.');
+    console.log('[blockSponsored] Bộ lọc nâng cao đã được đăng ký.');
   }
 });
